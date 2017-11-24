@@ -44,6 +44,7 @@ __mynode_config_defaults() {
 
 __mynode_read_config() {
 	if [[ -f "$HOME/.config/mynode/initrc" ]]; then
+		local k v
 		while IFS="=" read -r k v; do
 			k="$(__mynode_trim "$k")"
 			v="$(__mynode_trim "$v")"
@@ -86,6 +87,7 @@ __mynode_update() {
 
 __mynode_update_links() {
 	local IFS latest latest_lts
+	local version date files npm v8 uv zlib openssl modules lts
 
 	if [[ ! -f $__mynode_cache_dir/index.tab ]]; then
 		__mynode_update || return $?
@@ -141,6 +143,7 @@ __mynode_update_links() {
 __mynode_install() {
 	# shellcheck disable=2031
 	local requested_version="${1:?Specify node version}"
+	local version date files npm v8 uv zlib openssl modules lts
 
 	if ! [[ -f index.tab ]]; then
 		__mynode_update || return $?
@@ -194,6 +197,7 @@ __mynode_install() {
 
 __mynode_list() {
 	local IFS latest_lts=f
+	local version date files npm v8 uv zlib openssl modules lts
 	local current
 	current="$(cd "$__mynode_node_dir/current" &> /dev/null && pwd -P)"
 	current="${current##*/v}"
@@ -364,7 +368,7 @@ __mynode_clean() {
 
 
 __mynode_path_clean() {
-	local path new_path
+	local path new_path path_dir
 	if [[ $# -lt 1 ]]; then
 		path="$PATH"
 	else
@@ -398,6 +402,7 @@ __mynode_path_prepend() {
 
 __mynode_list_index() {
 	local IFS
+	local version date files npm v8 uv zlib openssl modules lts
 	# shellcheck disable=2034
 	while IFS=$'\t' read -r version date files npm v8 uv zlib openssl modules lts; do
 		if [[ $version == version ]]; then
