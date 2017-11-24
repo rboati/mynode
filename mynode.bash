@@ -16,6 +16,15 @@ __mynode_log_error() { printf -- "mynode: Error! %s\n" "$1" >&2; }
 __mynode_log_warn() { printf -- "mynode: Warning! %s\n" "$1" >&2; }
 
 
+__mynode_tac() {
+	local input i
+	readarray input
+	for (( i=(${#input[@]} - 1); i >= 0; --i )); do
+		printf -- "%s" "${input[$i]}"
+	done
+}
+
+
 __mynode_is_sourced() {
 	if [[ ${BASH_SOURCE[0]} != "$0" ]]; then
 		return 0
@@ -243,7 +252,7 @@ __mynode_list() {
 		if [[ $version == 4.0.0 ]]; then
 			return 0
 		fi
-	done < "$__mynode_cache_dir/index.tab" | tac
+	done < "$__mynode_cache_dir/index.tab" | __mynode_tac
 }
 
 
@@ -419,7 +428,7 @@ __mynode_list_index() {
 		if [[ $version == 4.0.0 ]]; then
 			return 0
 		fi
-	done < "$__mynode_cache_dir/index.tab" | tac
+	done < "$__mynode_cache_dir/index.tab" | __mynode_tac
 }
 
 
