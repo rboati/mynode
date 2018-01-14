@@ -16,6 +16,16 @@ __mynode_log_error() { printf -- "mynode: Error! %s\n" "$1" >&2; }
 __mynode_log_warn() { printf -- "mynode: Warning! %s\n" "$1" >&2; }
 
 
+#__mynode_debug=1
+__mynode_log_debug() { [[ $__mynode_debug ]] && printf -- "mynode[DEBUG]: %s\n" "$1" >&2; }
+
+
+__mynode_tilde_path() {
+	local tilde='~'
+	printf -- "%s" "${1/#$HOME/$tilde}"
+}
+
+
 __mynode_tac() {
 	local input i
 	readarray input
