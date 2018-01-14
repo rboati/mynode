@@ -86,7 +86,7 @@ __mynode_read_config() {
 __mynode_update() {
 	(
 		cd "$__mynode_cache_dir" || return 1
-		if ! curl -O -s -L "http://nodejs.org/dist/index.tab"; then
+		if ! wget --quiet --continue "http://nodejs.org/dist/index.tab"; then
 			__mynode_log_error "Updating failed!"
 			return 1
 		fi
@@ -180,7 +180,7 @@ __mynode_install() {
 					__mynode_log_info "Downloading $requested_version ($version)"
 					(
 						cd "$__mynode_cache_dir" || return 1
-						if ! curl -s -L -O -C - "http://nodejs.org/dist/v$version/$filename"; then
+						if ! wget --quiet --continue "http://nodejs.org/dist/v$version/$filename"; then
 							__mynode_log_error "Downloading version $version failed!"
 							return 1
 						fi
