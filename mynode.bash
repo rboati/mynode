@@ -90,7 +90,35 @@ __mynode_read_config() {
 			esac
 		done < "$HOME/.config/mynode/initrc"
 	fi
+}
 
+
+__mynode_resolve_path() {
+	local version
+	version="$(__mynode_trim "$1")"
+	local dirname dirpath
+	if [[ $version == latest || $version == lts || $version == current ]]; then
+		dirname="$version"
+	else
+		version="${version##*/}"
+		if [[ $version != "$1" || $version == "" ]]; then
+			__mynode_log_error "Invalid version specified!"
+			return 1
+		fi
+		dirname="v$version"
+	fi
+
+	dirpath="$__mynode_node_dir/$dirname"
+	if [[ ! -d $dirpath ]]; then
+		__mynode_log_error "Version $version not installed!"
+		return 1
+	fi
+
+	dirname="$(cd "$dirpath" &> /dev/null && pwd -P)"
+	dirname="${dirname##*/}"
+	dirpath="$__mynode_node_dir/$dirname"
+
+	printf -- "%s\n" "$dirpath"
 }
 
 
@@ -164,6 +192,11 @@ __mynode_install() {
 	# shellcheck disable=2031
 	local requested_version="${1:?Specify node version}"
 	local version date files npm v8 uv zlib openssl modules lts
+	local dirpath
+
+	if dirpath=$(__mynode_resolve_path "$requested_version"); then
+		requested_version=${dirpath##*/v}
+	fi
 
 	if ! [[ -f index.tab ]]; then
 		__mynode_update || return $?
@@ -200,6 +233,9 @@ __mynode_install() {
 					if ! tar xJf "$filename" -C "$dirpath" --strip-components=1; then
 						__mynode_log_error "Opening archive $version failed!"
 						return 1
+					fi
+					if ! __mynode_resolve_path current &> /dev/null; then
+						__mynode_use "$version"
 					fi
 					return 0
 				fi
@@ -267,38 +303,10 @@ __mynode_list() {
 }
 
 
-__mynode_get() {
-	local version
-	version="$(__mynode_trim "$1")"
-	local dirname dirpath
-	if [[ $version == latest || $version == lts ]]; then
-		dirname="$(cd "$__mynode_node_dir/$version" &> /dev/null && pwd -P)"
-		dirname="${dirname##*/}"
-		dirpath="$__mynode_node_dir/$dirname"
-	else
-		version="${version##*/}"
-		if [[ $version != "$1" || $version == "" ]]; then
-			__mynode_log_error "Invalid version specified!"
-			return 1
-		fi
-		dirname="v$version"
-		dirpath="$__mynode_node_dir/$dirname"
-	fi
-
-	if [[ ! -d $dirpath ]]; then
-		__mynode_log_error "Version $version not installed!"
-		return 1
-	fi
-
-	printf -- "%s\n" "$dirpath"
-}
-
-
 __mynode_uninstall() {
 	local version="$1"
 	local dirpath
-
-	if ! dirpath="$(__mynode_get "$version")"; then
+	if ! dirpath=$(__mynode_resolve_path "$version"); then
 		return $?
 	fi
 
@@ -316,11 +324,11 @@ __mynode_unset() {
 }
 
 
-__mynode_set() {
+__mynode_setenv() {
 	local version="$1"
 	local dirpath
 
-	if ! dirpath="$(__mynode_get "$version")"; then
+	if ! dirpath="$(__mynode_resolve_path "$version")"; then
 		return $?
 	fi
 
@@ -337,7 +345,7 @@ __mynode_use() {
 	local version="$1"
 	local dirpath
 
-	if ! dirpath="$(__mynode_get "$version")"; then
+	if ! dirpath="$(__mynode_resolve_path "$version")"; then
 		return $?
 	fi
 
@@ -472,7 +480,7 @@ __mynode_complete() {
 				# shellcheck disable=2086
 				COMPREPLY=( $(compgen -W "$(__mynode_list_index)" -- ${cur_word}) )
 				;;
-			uninstall|set|use|get)
+			uninstall|setenv|use|resolve)
 				# shellcheck disable=2086
 				COMPREPLY=( $(compgen -W "$(__mynode_list_installed)" -- ${cur_word}) )
 				;;
@@ -509,16 +517,16 @@ mynode() {
 			shift
 			__mynode_use "$@"
 			;;
-		get)
+		resolve)
 			shift
-			__mynode_get "$@"
+			__mynode_resolve_path "$@"
 			;;
-		set)
+		setenv)
 			shift
 			if ! __mynode_is_sourced; then
-				__mynode_log_warn "Command \"set\" is effective only if mynode is sourced"
+				__mynode_log_warn "Command \"setenv\" is effective only if mynode is sourced"
 			fi
-			__mynode_set "$@"
+			__mynode_setenv "$@"
 			;;
 		unset)
 			if ! __mynode_is_sourced; then
@@ -537,11 +545,11 @@ Available commands:
   update
   clean
   use {version}
-  get {version}
-  set {version}    (effective only if mynode is sourced)
-  unset            (effective only if mynode is sourced)
+  resolve {version}
+  setenv {version}    (effective only if mynode is sourced)
+  unset               (effective only if mynode is sourced)
 
-Where {version} can be one of "latest", "lts" or "{mayor}.{minor}.{patch}"
+Where {version} can be one of "latest", "lts", "current" or "{mayor}.{minor}.{patch}"
 
 Configuration:
   prefix_dir = "$__mynode_prefix_dir"
@@ -579,6 +587,8 @@ EOF
 			;;
 	esac
 }
+
+
 
 
 # execute mynode in setup mode (not sourced and in the repository directory)
