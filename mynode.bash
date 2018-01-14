@@ -77,7 +77,7 @@ __mynode_read_config() {
 			fi
 
 			case "$k" in
-				prefix_dir | bin_dir | node_dir | cache_dir)
+				mynode_dir | prefix_dir | bin_dir | node_dir | cache_dir)
 					v="${v%/}"
 					v="${v//\~/$HOME}"
 					read -r -d '' "__mynode_$k" <<< "$v"
@@ -354,7 +354,40 @@ __mynode_use() {
 }
 
 
+__mynode_update_link() {
+	local link="$1"
+	local dest="$2"
+	if [[ -L $link || ! -f $link ]]; then
+		__mynode_log_info "Linking $(__mynode_tilde_path "$link") -> $(__mynode_tilde_path "$dest")"
+		ln -sTf "$dest" "$link"
+	else
+		__mynode_log_warn "Cannot update '$link', it's not a symbolic link!"
+	fi
+
+}
+
+
 __mynode_setup() {
+	cat << EOF
+Create/edit file "~/.config/mynode/initrc" to modify configuration.
+
+Current configuration:
+  mynode_dir = "$(__mynode_tilde_path "$__mynode_mynode_dir")"
+  prefix_dir = "$(__mynode_tilde_path "$__mynode_prefix_dir")"
+     bin_dir = "$(__mynode_tilde_path "$__mynode_bin_dir")"
+    node_dir = "$(__mynode_tilde_path "$__mynode_node_dir")"
+   cache_dir = "$(__mynode_tilde_path "$__mynode_cache_dir")"
+        arch = "$(__mynode_tilde_path "$__mynode_arch")"
+
+EOF
+	read -r -s -n 1 -p "Ok? [Y/n]: "
+
+	case "$REPLY" in
+		y|Y|"") echo "y";;
+		*) echo "n"; return ;;
+	esac
+	echo
+
 	[[ -d $__mynode_prefix_dir ]] && mkdir -p "$__mynode_prefix_dir"
 	[[ -d $__mynode_bin_dir ]] && mkdir -p "$__mynode_bin_dir"
 	[[ -d $__mynode_node_dir ]] && mkdir -p "$__mynode_node_dir"
@@ -362,29 +395,19 @@ __mynode_setup() {
 
 	local this_dir
 	this_dir="$(cd "${0%/*}" &> /dev/null && pwd -P)"
-	if [[ -L $__mynode_bin_dir/mynode ]]; then
-		__mynode_log_info "$__mynode_bin_dir/mynode -> $this_dir/mynode.bash"
-		ln -sTf "$this_dir/mynode.bash" "$__mynode_bin_dir/node"
-	fi
-	if [[ -L $__mynode_bin_dir/node ]]; then
-		__mynode_log_info "$__mynode_bin_dir/node -> $__mynode_node_dir/current/bin/node"
-		ln -sTf "$__mynode_node_dir/current/bin/node" "$__mynode_bin_dir/node"
-	fi
-	if [[ -L $__mynode_bin_dir/node@current ]]; then
-		__mynode_log_info "$__mynode_bin_dir/node@current -> $__mynode_node_dir/current/bin/node"
-		ln -sTf "$__mynode_node_dir/current/bin/node" "$__mynode_bin_dir/node@current"
-	fi
-	if [[ -L $__mynode_bin_dir/npm@current ]]; then
-		__mynode_log_info "$__mynode_bin_dir/npm@current -> $__mynode_node_dir/current/bin/npm"
-		ln -sTf "$__mynode_node_dir/current/bin/npm" "$__mynode_bin_dir/npm@current"
-	fi
-	if [[ -L $__mynode_bin_dir/npx@current ]]; then
-		__mynode_log_info "$__mynode_bin_dir/npx@current -> $__mynode_node_dir/current/bin/npx"
-		ln -sTf "$__mynode_node_dir/current/bin/npx" "$__mynode_bin_dir/npx@current"
-	fi
 
-	"$__mynode_node_dir/current/bin/npm" config set prefix "$__mynode_prefix_dir"
-	"$__mynode_node_dir/current/bin/npm" install -g npm
+	__mynode_update_link "$__mynode_bin_dir/mynode" "$__mynode_mynode_dir/mynode.bash"
+	__mynode_update_link "$__mynode_bin_dir/node"   "$__mynode_node_dir/current/bin/node"
+	__mynode_update_link "$__mynode_bin_dir/npm"    "$__mynode_node_dir/current/bin/npm"
+	__mynode_update_link "$__mynode_bin_dir/npx"    "$__mynode_node_dir/current/bin/npx"
+
+	cat << EOF
+
+Recommended:
+    $ npm config set prefix '$__mynode_prefix_dir'
+
+EOF
+
 }
 
 
@@ -494,7 +517,6 @@ __mynode_complete() {
 
 mynode() {
 	__mynode_read_config
-
 	local command="$1"
 	case "$command" in
 		install)
@@ -553,11 +575,12 @@ Available commands:
 Where {version} can be one of "latest", "lts", "current" or "{mayor}.{minor}.{patch}"
 
 Configuration:
-  prefix_dir = "$__mynode_prefix_dir"
-     bin_dir = "$__mynode_bin_dir"
-    node_dir = "$__mynode_node_dir"
-   cache_dir = "$__mynode_cache_dir"
-        arch = "$__mynode_arch"
+  mynode_dir = "$(__mynode_tilde_path "$__mynode_mynode_dir")"
+  prefix_dir = "$(__mynode_tilde_path "$__mynode_prefix_dir")"
+     bin_dir = "$(__mynode_tilde_path "$__mynode_bin_dir")"
+    node_dir = "$(__mynode_tilde_path "$__mynode_node_dir")"
+   cache_dir = "$(__mynode_tilde_path "$__mynode_cache_dir")"
+        arch = "$(__mynode_tilde_path "$__mynode_arch")"
 EOF
 			;;
 	esac
@@ -578,12 +601,6 @@ mynode [command]
 Available commands:
   setup
 
-Configuration:
-  prefix_dir = "$__mynode_prefix_dir"
-     bin_dir = "$__mynode_bin_dir"
-    node_dir = "$__mynode_node_dir"
-   cache_dir = "$__mynode_cache_dir"
-        arch = "$__mynode_arch"
 EOF
 			;;
 	esac
