@@ -310,7 +310,8 @@ __mynode_uninstall() {
 		return $?
 	fi
 
-	rm -rf "$__mynode_node_dir/v$version"
+	rm -rf "$dirpath"
+	__mynode_update_links
 }
 
 
