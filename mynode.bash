@@ -230,7 +230,7 @@ __mynode_install() {
 						fi
 					)
 					mkdir -p "$dirpath"
-					if ! tar xJf "$filename" -C "$dirpath" --strip-components=1; then
+					if ! tar xJf "$__mynode_cache_dir/$filename" -C "$dirpath" --strip-components=1; then
 						__mynode_log_error "Opening archive $version failed!"
 						return 1
 					fi
