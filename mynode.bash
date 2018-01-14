@@ -53,15 +53,17 @@ __mynode_trim() {
 
 
 __mynode_config_defaults() {
-	[[ $(__mynode_trim "$__mynode_prefix_dir") ]] || __mynode_prefix_dir="$HOME/.local"
-	[[ $(__mynode_trim "$__mynode_bin_dir")    ]] || __mynode_bin_dir="$__mynode_prefix_dir/bin"
-	[[ $(__mynode_trim "$__mynode_node_dir")   ]] || __mynode_node_dir="$__mynode_prefix_dir/lib/node"
-	[[ $(__mynode_trim "$__mynode_cache_dir")  ]] || __mynode_cache_dir="$HOME/.cache/mynode"
-	[[ $(__mynode_trim "$__mynode_arch")       ]] || __mynode_arch="linux-x64"
+	__mynode_mynode_dir="$HOME/.local/lib/mynode"
+	__mynode_prefix_dir="$HOME/.local"
+	__mynode_bin_dir="$__mynode_prefix_dir/bin"
+	__mynode_node_dir="$__mynode_prefix_dir/lib/node"
+	__mynode_cache_dir="$HOME/.cache/mynode"
+	__mynode_arch="linux-x64"
 }
 
 
 __mynode_read_config() {
+	__mynode_config_defaults
 	if [[ -f "$HOME/.config/mynode/initrc" ]]; then
 		local k v
 		while IFS="=" read -r k v; do
@@ -89,7 +91,6 @@ __mynode_read_config() {
 		done < "$HOME/.config/mynode/initrc"
 	fi
 
-	__mynode_config_defaults
 }
 
 
@@ -455,6 +456,7 @@ __mynode_list_installed() {
 
 
 __mynode_complete() {
+	__mynode_read_config
 	local cur_word prev_word word_list
 	cur_word="${COMP_WORDS[COMP_CWORD]}"
 	prev_word="${COMP_WORDS[COMP_CWORD-1]}"
