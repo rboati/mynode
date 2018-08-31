@@ -125,7 +125,7 @@ __mynode_resolve_path() {
 __mynode_update() {
 	(
 		cd "$__mynode_cache_dir" || return 1
-		if ! wget --quiet --continue "http://nodejs.org/dist/index.tab"; then
+		if ! wget --quiet "http://nodejs.org/dist/index.tab" -O "index.tab"; then
 			__mynode_log_error "Updating failed!"
 			return 1
 		fi
