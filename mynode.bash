@@ -1,10 +1,10 @@
 #!/bin/bash
 
-declare __mynode_prefix_dir
-declare __mynode_bin_dir
-declare __mynode_node_dir
-declare __mynode_cache_dir
-declare __mynode_arch
+declare -g __mynode_prefix_dir
+declare -g __mynode_bin_dir
+declare -g __mynode_node_dir
+declare -g __mynode_cache_dir
+declare -g __mynode_arch
 
 
 __mynode_log_info() { printf -- "mynode: %s\n" "$1" >&2; }
@@ -17,6 +17,7 @@ __mynode_log_warn() { printf -- "mynode: Warning! %s\n" "$1" >&2; }
 
 
 #__mynode_debug=1
+# shellcheck disable=SC2154
 __mynode_log_debug() { [[ $__mynode_debug ]] && printf -- "mynode[DEBUG]: %s\n" "$1" >&2; }
 
 
@@ -70,9 +71,9 @@ __mynode_read_config() {
 			k="$(__mynode_trim "$k")"
 			v="$(__mynode_trim "$v")"
 
-			if [[ ${v#\"} != "$v" && "${v%\"}" != "$v" ]]; then
+			if [[ ${v#\"} != "$v" && ${v%\"} != "$v" ]]; then
 				v="${v#\"}"; v="${v%\"}"
-			elif [[ ${v#\'} != "$v" && "${v%\'}" != "$v" ]]; then
+			elif [[ ${v#\'} != "$v" && ${v%\'} != "$v" ]]; then
 				v="${v#\'}"; v="${v%\'}"
 			fi
 
@@ -393,8 +394,7 @@ EOF
 	[[ -d $__mynode_node_dir ]] && mkdir -p "$__mynode_node_dir"
 	[[ -d $__mynode_cache_dir ]] && mkdir -p "$__mynode_cache_dir"
 
-	local this_dir
-	this_dir="$(cd "${0%/*}" &> /dev/null && pwd -P)"
+	#local this_dir="$(cd "${0%/*}" &> /dev/null && pwd -P)"
 
 	__mynode_update_link "$__mynode_bin_dir/mynode" "$__mynode_mynode_dir/mynode.bash"
 	__mynode_update_link "$__mynode_bin_dir/node"   "$__mynode_node_dir/current/bin/node"
@@ -496,17 +496,18 @@ __mynode_complete() {
 	if [[ $COMP_CWORD == 1 ]]; then
 		word_list="install uninstall use list ls update clean"
 		# shellcheck disable=2086
-		COMPREPLY=( $(compgen -W "${word_list}" -- ${cur_word}) )
+		IFS=" " read -r -a COMPREPLY <<< "$(compgen -W "${word_list}" -- ${cur_word})"
+
 
 	elif [[ $COMP_CWORD == 2 ]]; then
 		case "$prev_word" in
 			install)
 				# shellcheck disable=2086
-				COMPREPLY=( $(compgen -W "$(__mynode_list_index)" -- ${cur_word}) )
+				IFS=" " read -r -a COMPREPLY <<< "$(compgen -W "$(__mynode_list_index)" -- ${cur_word})"
 				;;
 			uninstall|setenv|use|resolve)
 				# shellcheck disable=2086
-				COMPREPLY=( $(compgen -W "$(__mynode_list_installed)" -- ${cur_word}) )
+				IFS=" " read -r -a COMPREPLY <<< "$(compgen -W "$(__mynode_list_installed)" -- ${cur_word})"
 				;;
 		esac
 	fi
